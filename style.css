@@ -1,0 +1,48 @@
+/* 解决被挤到右侧的问题：强制最外层容器独占一行并撑满宽度 */
+.adv-res-wrapper {
+    width: 100% !important;
+    flex-basis: 100% !important;
+    min-width: 100% !important;
+    padding: 0 !important;
+    margin: 0.5rem 0 !important;
+    display: block !important;
+}
+
+/* 针对 4K 环境下的面板基础设定 */
+.adv-res-accordion {
+    border: 1px solid var(--border-color-primary);
+    border-radius: 0.5rem;
+    width: 100%;
+}
+
+/* 类别小标题样式，保持锐利与清晰 */
+.ar-category-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--body-text-color);
+    margin: 0.8rem 0 0.3rem 0.2rem;
+    opacity: 0.85;
+}
+
+/* 按钮组布局 (横向排列并允许换行) */
+.ar-button-row {
+    gap: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+
+.ar-button-row button {
+    flex: 1 1 auto;
+    font-size: 0.95rem;      /* 相对单位保障 4K 缩放锐度 */
+    font-weight: 600;
+    padding: 0.5rem 0.4rem;
+    border-radius: 0.4rem;
+    min-width: 140px;        /* 防止按钮在 4K 缩放下过窄 */
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ar-button-row button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
