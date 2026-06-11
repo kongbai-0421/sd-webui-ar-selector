@@ -32,9 +32,11 @@ config.json
 ui-config.json
 params.txt
 custom_resolutions.json
+base_resolution_presets.json
 prompt_tag_manager_data/
 artist_mixer_templates.json
 artist_mixer_cache/
+intro_language.json
 
 # OS / editor files
 .DS_Store

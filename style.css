@@ -46,3 +46,95 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+
+.adv-ar-base-manager {
+    border: 1px solid var(--border-color-primary);
+    border-radius: 0.4rem;
+    padding: 0.75rem;
+    margin-bottom: 0.85rem;
+    background: var(--background-fill-secondary);
+}
+
+.adv-ar-base-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--body-text-color);
+    margin-bottom: 0.2rem;
+}
+
+.adv-ar-base-hint {
+    font-size: 0.85rem;
+    color: var(--body-text-color-subdued);
+    margin-bottom: 0.65rem;
+}
+
+.adv-ar-base-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.adv-ar-base-input {
+    min-width: 9rem;
+    flex: 0 1 12rem;
+    height: 2.35rem;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid var(--border-color-primary);
+    border-radius: 0.35rem;
+    color: var(--input-text-color);
+    background: var(--input-background-fill);
+}
+
+.adv-ar-base-add {
+    height: 2.35rem;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--button-secondary-border-color);
+    border-radius: 0.35rem;
+    color: var(--button-secondary-text-color);
+    background: var(--button-secondary-background-fill);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.adv-ar-base-add:hover {
+    background: var(--button-secondary-background-fill-hover);
+}
+
+.adv-ar-base-status {
+    min-height: 1.2rem;
+    margin-top: 0.45rem;
+    font-size: 0.85rem;
+    color: var(--body-text-color-subdued);
+}
+
+.adv-ar-base-status-error {
+    color: var(--error-text-color);
+}
+
+.adv-ar-base-tab-delete {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.adv-ar-base-delete-x {
+    display: inline-flex;
+    width: 1.15rem;
+    height: 1.15rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.75;
+    cursor: pointer;
+}
+
+.adv-ar-base-delete-x:hover {
+    opacity: 1;
+    color: var(--error-text-color);
+    background: var(--background-fill-primary);
+}
