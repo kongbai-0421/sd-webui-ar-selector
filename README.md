@@ -41,7 +41,7 @@ Advanced Resolution Selector adds a compact preset-resolution and custom-bucket 
 
 ## Language Setting
 
-Open **Settings**, find **Advanced Resolution Selector**, and choose `zh` or `en`. Reload UI after changing the option.
+Use the **UI language** selector in the panel to switch between English and Chinese. The extension saves the option and reloads the UI so every label is rebuilt in the selected language.
 
 ## Notes
 

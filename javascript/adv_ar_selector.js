@@ -22,6 +22,16 @@
         }, 250);
     }
 
+    function reloadCompleteUi() {
+        const app = window.gradioApp ? window.gradioApp() : document;
+        const reloadButton = app.getElementById("settings_restart_gradio") || document.getElementById("settings_restart_gradio");
+        if (reloadButton) {
+            reloadButton.click();
+            return;
+        }
+        window.location.reload();
+    }
+
     async function postJson(url, data) {
         const response = await fetch(apiUrl(url), {
             method: "POST",
@@ -122,9 +132,19 @@
         });
     }
 
+    function setupLanguageReload() {
+        const marker = document.querySelector("[data-adv-ar-language-reload='1']");
+        if (!marker || marker.dataset.advArReloadReady === "1") return;
+        marker.dataset.advArReloadReady = "1";
+        window.setTimeout(function () {
+            reloadCompleteUi();
+        }, 450);
+    }
+
     function scan() {
         document.querySelectorAll(".adv-ar-base-manager").forEach(setupBaseManager);
         setupDeletableTabs();
+        setupLanguageReload();
     }
 
     function start() {

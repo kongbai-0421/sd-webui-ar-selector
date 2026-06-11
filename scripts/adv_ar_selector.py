@@ -18,7 +18,7 @@ EXTENSION_DIR = Path(__file__).resolve().parents[1]
 LANG = {
     "zh": {
         "intro_language": "界面语言",
-        "language_saved": "界面语言已保存。说明已立即切换；完整控件文字将在 Reload UI 或下次启动后生效。",
+        "language_saved": "界面语言已保存，正在刷新以应用全部控件文字。",
         "language_save_failed": "界面语言保存失败，请检查控制台日志。",
         "title": "高级分辨率与自定义桶",
         "accordion": "预设分辨率与自定义比例",
@@ -30,6 +30,14 @@ LANG = {
         "square": "方形 (Square)",
         "landscape": "横向 (Landscape)",
         "portrait": "竖向 (Portrait)",
+        "note_widescreen": "宽银幕",
+        "note_cinematic": "电影",
+        "note_ultrawide": "超宽",
+        "note_panorama": "全景",
+        "note_vertical_widescreen": "竖银幕",
+        "note_vertical": "竖向",
+        "note_narrow": "极窄",
+        "note_strip": "竖条",
         "base_quick_title": "基础分辨率快速设置",
         "base_quick_hint": "输入 64 的倍数，自动计算桶分辨率并添加到快速设置栏。",
         "base_quick_placeholder": "例如: 1600",
@@ -54,7 +62,7 @@ LANG = {
     },
     "en": {
         "intro_language": "UI language",
-        "language_saved": "UI language saved. The guide switched immediately; all control labels update after Reload UI or the next startup.",
+        "language_saved": "UI language saved. Reloading to apply all control labels.",
         "language_save_failed": "Failed to save UI language. Check the console log.",
         "title": "Advanced Resolution and Custom Buckets",
         "accordion": "Preset Resolutions and Custom Ratios",
@@ -66,6 +74,14 @@ LANG = {
         "square": "Square",
         "landscape": "Landscape",
         "portrait": "Portrait",
+        "note_widescreen": "Widescreen",
+        "note_cinematic": "Cinema",
+        "note_ultrawide": "Ultrawide",
+        "note_panorama": "Panorama",
+        "note_vertical_widescreen": "Vertical widescreen",
+        "note_vertical": "Vertical",
+        "note_narrow": "Narrow",
+        "note_strip": "Strip",
         "base_quick_title": "Base resolution quick preset",
         "base_quick_hint": "Enter a multiple of 64 to calculate bucket resolutions and add them to the quick preset bar.",
         "base_quick_placeholder": "Example: 1600",
@@ -102,6 +118,15 @@ def _t(key):
     return LANG.get(_language(), LANG["zh"]).get(key, key)
 
 
+def _html_attr(value):
+    return str(value).replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _status_html(message, reload_ui=False):
+    reload_attr = ' data-adv-ar-language-reload="1"' if reload_ui else ""
+    return f'<span{reload_attr}>{_html_attr(message)}</span>'
+
+
 def _choice_to_language(language):
     if language in LANGUAGE_CHOICES:
         return language
@@ -128,10 +153,10 @@ def _save_ui_language(language):
         else:
             shared.opts.data[LANGUAGE_OPTION] = language_code
         shared.opts.save(shared.config_filename)
-        return _intro_text(language_code), LANG[language_code]["language_saved"]
+        return _intro_text(language_code), _status_html(LANG[language_code]["language_saved"], reload_ui=True)
     except Exception:
         logger.exception("Failed to save Advanced Resolution Selector UI language")
-        return _intro_text(language_code), LANG[language_code]["language_save_failed"]
+        return _intro_text(language_code), _status_html(LANG[language_code]["language_save_failed"])
 
 
 def _intro_block():
@@ -142,7 +167,7 @@ def _intro_block():
             label=_t("intro_language"),
         )
     intro = gr.Markdown(value=_intro_default())
-    intro_status = gr.Markdown(value="")
+    intro_status = gr.HTML(value="", elem_classes="adv-ar-language-status")
     intro_language.change(fn=_save_ui_language, inputs=[intro_language], outputs=[intro, intro_status], queue=False, show_progress=False)
 
 
@@ -185,69 +210,33 @@ CANONICAL_1024_BUCKETS = {
         ("4:3", "", (1152, 832)),
         ("3:2", "", (1216, 832)),
         ("16:9", "", (1344, 768)),
-        ("1.85:1", "宽银幕", (1408, 768)),
-        ("2:1", "电影", (1472, 704)),
-        ("21:9", "超宽", (1536, 640)),
-        ("3:1", "全景", (1728, 576)),
+        ("1.85:1", "note_widescreen", (1408, 768)),
+        ("2:1", "note_cinematic", (1472, 704)),
+        ("21:9", "note_ultrawide", (1536, 640)),
+        ("3:1", "note_panorama", (1728, 576)),
     ],
     "portrait": [
         ("4:5", "", (896, 1152)),
         ("3:4", "", (832, 1152)),
         ("2:3", "", (832, 1216)),
         ("9:16", "", (768, 1344)),
-        ("1:1.85", "竖银幕", (768, 1408)),
-        ("1:2", "竖向", (704, 1472)),
-        ("9:21", "极窄", (640, 1536)),
-        ("1:3", "竖条", (576, 1728)),
+        ("1:1.85", "note_vertical_widescreen", (768, 1408)),
+        ("1:2", "note_vertical", (704, 1472)),
+        ("9:21", "note_narrow", (640, 1536)),
+        ("1:3", "note_strip", (576, 1728)),
     ],
 }
 
-STATIC_RESOLUTION_SETS = {
+STATIC_RESOLUTION_SIZES = {
     1024: {
-        "square": {"1:1 (1024x1024)": (1024, 1024)},
-        "landscape": {
-            "5:4 (1152x896)": (1152, 896),
-            "4:3 (1152x832)": (1152, 832),
-            "3:2 (1216x832)": (1216, 832),
-            "16:9 (1344x768)": (1344, 768),
-            "1.85:1 宽银幕 (1408x768)": (1408, 768),
-            "2:1 电影 (1472x704)": (1472, 704),
-            "21:9 超宽 (1536x640)": (1536, 640),
-            "3:1 全景 (1728x576)": (1728, 576),
-        },
-        "portrait": {
-            "4:5 (896x1152)": (896, 1152),
-            "3:4 (832x1152)": (832, 1152),
-            "2:3 (832x1216)": (832, 1216),
-            "9:16 (768x1344)": (768, 1344),
-            "1:1.85 竖银幕 (768x1408)": (768, 1408),
-            "1:2 竖向 (704x1472)": (704, 1472),
-            "9:21 极窄 (640x1536)": (640, 1536),
-            "1:3 竖条 (576x1728)": (576, 1728),
-        },
+        "square": [(1024, 1024)],
+        "landscape": [(1152, 896), (1152, 832), (1216, 832), (1344, 768), (1408, 768), (1472, 704), (1536, 640), (1728, 576)],
+        "portrait": [(896, 1152), (832, 1152), (832, 1216), (768, 1344), (768, 1408), (704, 1472), (640, 1536), (576, 1728)],
     },
     1536: {
-        "square": {"1:1 (1536x1536)": (1536, 1536)},
-        "landscape": {
-            "5:4 (1728x1344)": (1728, 1344),
-            "4:3 (1728x1280)": (1728, 1280),
-            "3:2 (1856x1216)": (1856, 1216),
-            "16:9 (2048x1152)": (2048, 1152),
-            "1.85:1 宽银幕 (2112x1152)": (2112, 1152),
-            "2:1 电影 (2240x1088)": (2240, 1088),
-            "21:9 超宽 (2304x960)": (2304, 960),
-            "3:1 全景 (2560x832)": (2560, 832),
-        },
-        "portrait": {
-            "4:5 (1344x1728)": (1344, 1728),
-            "3:4 (1280x1728)": (1280, 1728),
-            "2:3 (1216x1856)": (1216, 1856),
-            "9:16 (1152x2048)": (1152, 2048),
-            "1:1.85 竖银幕 (1152x2112)": (1152, 2112),
-            "1:2 竖向 (1088x2240)": (1088, 2240),
-            "9:21 极窄 (960x2304)": (960, 2304),
-            "1:3 竖条 (832x2560)": (832, 2560),
-        },
+        "square": [(1536, 1536)],
+        "landscape": [(1728, 1344), (1728, 1280), (1856, 1216), (2048, 1152), (2112, 1152), (2240, 1088), (2304, 960), (2560, 832)],
+        "portrait": [(1344, 1728), (1280, 1728), (1216, 1856), (1152, 2048), (1152, 2112), (1088, 2240), (960, 2304), (832, 2560)],
     },
 }
 
@@ -272,29 +261,44 @@ def _valid_base_resolution(value):
     return base
 
 
-def _format_bucket_label(ratio, note, w, h):
-    note_part = f" {note}" if note else ""
+def _format_bucket_label(ratio, note_key, w, h):
+    note_part = f" {_t(note_key)}" if note_key else ""
     return f"{ratio}{note_part} ({w}x{h})"
+
+
+def _bucket_entries_for_base(base):
+    if base in STATIC_RESOLUTION_SIZES:
+        entries = {}
+        for category, canonical_entries in CANONICAL_1024_BUCKETS.items():
+            entries[category] = []
+            sizes = STATIC_RESOLUTION_SIZES[base][category]
+            for (ratio, note_key, _canonical_size), size in zip(canonical_entries, sizes):
+                entries[category].append((ratio, note_key, size))
+        return entries
+
+    scale = base / 1024
+    entries = {}
+    for category, canonical_entries in CANONICAL_1024_BUCKETS.items():
+        entries[category] = []
+        for ratio, note_key, (canonical_w, canonical_h) in canonical_entries:
+            if category == "square":
+                size = (base, base)
+            else:
+                size = (_round_to_bucket(canonical_w * scale), _round_to_bucket(canonical_h * scale))
+            entries[category].append((ratio, note_key, size))
+    return entries
 
 
 def build_resolution_set(base):
     base = _valid_base_resolution(base)
     if base is None:
         return {}
-    if base in STATIC_RESOLUTION_SETS:
-        return STATIC_RESOLUTION_SETS[base]
 
-    scale = base / 1024
     result = {}
-    for category, entries in CANONICAL_1024_BUCKETS.items():
+    for category, entries in _bucket_entries_for_base(base).items():
         result[category] = {}
-        for ratio, note, (canonical_w, canonical_h) in entries:
-            if category == "square":
-                w, h = base, base
-            else:
-                w = _round_to_bucket(canonical_w * scale)
-                h = _round_to_bucket(canonical_h * scale)
-            result[category][_format_bucket_label(ratio, note, w, h)] = (w, h)
+        for ratio, note_key, (w, h) in entries:
+            result[category][_format_bucket_label(ratio, note_key, w, h)] = (w, h)
     return result
 
 
@@ -401,11 +405,6 @@ def calculate_ratio(w, h):
         return f"{w//d}:{h//d}"
     except Exception:
         return ""
-
-
-def _html_attr(value):
-    return str(value).replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
-
 
 def _base_quick_manager_html():
     invalid = _html_attr(_t("base_quick_invalid"))

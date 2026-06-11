@@ -41,7 +41,7 @@
 
 ## 语言设置
 
-进入 **设置**，找到 **Advanced Resolution Selector / 高级分辨率选择器**，选择 `zh` 或 `en`，然后 Reload UI。
+在面板里的 **界面语言** 选择 English 或 中文。插件会保存选项并自动 Reload UI，让全部控件文字按所选语言重新构建。
 
 ## 注意
 
