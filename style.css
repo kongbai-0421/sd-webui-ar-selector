@@ -138,3 +138,45 @@
     color: var(--error-text-color);
     background: var(--background-fill-primary);
 }
+
+.adv-ar-dynamic-base-tabs {
+    display: grid;
+    gap: 0.65rem;
+    margin: 0.1rem 0 0.9rem;
+}
+
+.adv-ar-dynamic-base-panel {
+    border: 1px solid var(--border-color-primary);
+    border-radius: 0.4rem;
+    background: var(--background-fill-secondary);
+    overflow: hidden;
+}
+
+.adv-ar-dynamic-base-header {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border: 0;
+    border-radius: 0;
+    padding: 0.55rem 0.75rem;
+    color: var(--button-secondary-text-color);
+    background: var(--button-secondary-background-fill);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.adv-ar-dynamic-base-header:hover {
+    background: var(--button-secondary-background-fill-hover);
+}
+
+.adv-ar-dynamic-base-body {
+    display: none;
+    padding: 0.2rem 0.75rem 0.75rem;
+}
+
+.adv-ar-dynamic-base-panel.open .adv-ar-dynamic-base-body {
+    display: block;
+}

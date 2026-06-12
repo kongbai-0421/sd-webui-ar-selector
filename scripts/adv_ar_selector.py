@@ -18,7 +18,7 @@ EXTENSION_DIR = Path(__file__).resolve().parents[1]
 LANG = {
     "zh": {
         "intro_language": "界面语言",
-        "language_saved": "界面语言已保存，正在刷新以应用全部控件文字。",
+        "language_saved": "界面语言已保存，插件面板已切换。",
         "language_save_failed": "界面语言保存失败，请检查控制台日志。",
         "title": "高级分辨率与自定义桶",
         "accordion": "预设分辨率与自定义比例",
@@ -43,11 +43,11 @@ LANG = {
         "base_quick_placeholder": "例如: 1600",
         "base_quick_add": "添加到快速设置栏",
         "base_quick_invalid": "请输入一个大于 0 且为 64 倍数的整数。",
-        "base_quick_added": "已添加 {base} 基准快速设置，正在刷新界面。",
+        "base_quick_added": "已添加 {base} 基准快速设置，正在刷新插件面板。",
         "base_quick_exists": "{base} 基准快速设置已存在。",
         "base_quick_failed": "保存基础分辨率失败，请检查控制台日志。",
         "base_quick_delete_confirm": "删除 {base} 基准快速设置？",
-        "base_quick_delete_confirm_final": "再次确认删除 {base} 基准预设？此操作会刷新界面。",
+        "base_quick_delete_confirm_final": "再次确认删除 {base} 基准预设？此操作会刷新插件面板。",
         "base_quick_deleted": "已删除 {base} 基准快速设置。",
         "base_quick_delete_failed": "删除基础分辨率失败，请检查控制台日志。",
         "custom_width": "自定义宽度",
@@ -62,7 +62,7 @@ LANG = {
     },
     "en": {
         "intro_language": "UI language",
-        "language_saved": "UI language saved. Reloading to apply all control labels.",
+        "language_saved": "UI language saved. The plugin panel has been updated.",
         "language_save_failed": "Failed to save UI language. Check the console log.",
         "title": "Advanced Resolution and Custom Buckets",
         "accordion": "Preset Resolutions and Custom Ratios",
@@ -87,11 +87,11 @@ LANG = {
         "base_quick_placeholder": "Example: 1600",
         "base_quick_add": "Add to quick presets",
         "base_quick_invalid": "Enter a positive integer that is divisible by 64.",
-        "base_quick_added": "Added the {base} base quick preset. Reloading the UI.",
+        "base_quick_added": "Added the {base} base quick preset. Refreshing the plugin panel.",
         "base_quick_exists": "The {base} base quick preset already exists.",
         "base_quick_failed": "Failed to save the base resolution. Check the console log.",
         "base_quick_delete_confirm": "Delete the {base} base quick preset?",
-        "base_quick_delete_confirm_final": "Confirm deletion of the {base} base preset? The UI will reload.",
+        "base_quick_delete_confirm_final": "Confirm deletion of the {base} base preset? The plugin panel will refresh.",
         "base_quick_deleted": "Deleted the {base} base quick preset.",
         "base_quick_delete_failed": "Failed to delete the base resolution. Check the console log.",
         "custom_width": "Custom width",
@@ -122,9 +122,9 @@ def _html_attr(value):
     return str(value).replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _status_html(message, reload_ui=False):
-    reload_attr = ' data-adv-ar-language-reload="1"' if reload_ui else ""
-    return f'<span{reload_attr}>{_html_attr(message)}</span>'
+def _status_html(message, refresh_language=None):
+    refresh_attr = f' data-adv-ar-language-refresh="{_html_attr(refresh_language)}"' if refresh_language else ""
+    return f'<span{refresh_attr}>{_html_attr(message)}</span>'
 
 
 def _choice_to_language(language):
@@ -153,7 +153,7 @@ def _save_ui_language(language):
         else:
             shared.opts.data[LANGUAGE_OPTION] = language_code
         shared.opts.save(shared.config_filename)
-        return _intro_text(language_code), _status_html(LANG[language_code]["language_saved"], reload_ui=True)
+        return _intro_text(language_code), _status_html(LANG[language_code]["language_saved"], refresh_language=language_code)
     except Exception:
         logger.exception("Failed to save Advanced Resolution Selector UI language")
         return _intro_text(language_code), _status_html(LANG[language_code]["language_save_failed"])
@@ -183,7 +183,7 @@ def _setting_language():
             {"choices": LANGUAGE_CHOICES},
             section=("advanced-resolution-selector", "Advanced Resolution Selector"),
             category_id="system",
-        ).needs_reload_ui(),
+        ),
     )
 
 
@@ -406,14 +406,21 @@ def calculate_ratio(w, h):
     except Exception:
         return ""
 
-def _base_quick_manager_html():
+def _base_quick_manager_html(target_w=None, target_h=None):
     invalid = _html_attr(_t("base_quick_invalid"))
     added = _html_attr(_t("base_quick_added"))
     failed = _html_attr(_t("base_quick_failed"))
     confirm = _html_attr(_t("base_quick_delete_confirm"))
     confirm_final = _html_attr(_t("base_quick_delete_confirm_final"))
+    bases = _html_attr(json.dumps(all_base_presets(), separators=(",", ":")))
+    target_w_id = _html_attr(getattr(target_w, "elem_id", "") or "")
+    target_h_id = _html_attr(getattr(target_h, "elem_id", "") or "")
     return f"""
 <div class="adv-ar-base-manager"
+     data-adv-ar-locale="{_language()}"
+     data-bases="{bases}"
+     data-width-id="{target_w_id}"
+     data-height-id="{target_h_id}"
      data-add-url="adv-ar-selector/api/base/add"
      data-delete-url="adv-ar-selector/api/base/delete"
      data-invalid-message="{invalid}"
@@ -489,12 +496,11 @@ class AdvancedResolutionScript(scripts.Script):
                         create_resolution_tab(1024, _t("tab_1024"))
                         create_resolution_tab(1280, _t("tab_1280"))
                         create_resolution_tab(1536, _t("tab_1536"))
-                        for custom_base in load_custom_base_presets():
-                            create_resolution_tab(custom_base, f"{custom_base} {_t('tab_base_custom')}", deletable=True)
 
                         # --- 自定义选项卡 ---
                         with gr.Tab("🔧 " + _t("tab_custom")):
-                            gr.HTML(_base_quick_manager_html())
+                            gr.HTML(_base_quick_manager_html(target_w, target_h))
+                            gr.HTML("<div class='adv-ar-dynamic-base-tabs'></div>")
                             with gr.Row():
                                 custom_w = gr.Number(label=_t("custom_width"), value=1024, precision=0)
                                 custom_h = gr.Number(label=_t("custom_height"), value=1024, precision=0)
