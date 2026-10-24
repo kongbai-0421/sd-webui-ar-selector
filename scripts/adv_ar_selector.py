@@ -166,6 +166,7 @@ def _intro_block():
             value=_language_choice(),
             label=_t("intro_language"),
         )
+        intro_language.do_not_save_to_config = True
     intro = gr.Markdown(value=_intro_default())
     intro_status = gr.HTML(value="", elem_classes="adv-ar-language-status")
     intro_language.change(fn=_save_ui_language, inputs=[intro_language], outputs=[intro, intro_status], queue=False, show_progress=False)
@@ -472,9 +473,8 @@ class AdvancedResolutionScript(scripts.Script):
                     btn = gr.Button(value=label, size="sm")
                     btn.click(fn=lambda width=w, height=h: (width, height), inputs=[], outputs=[target_w, target_h])
 
-            def create_resolution_tab(base, label, deletable=False):
-                tab_label = f"{label} ×" if deletable else label
-                with gr.Tab(tab_label):
+            def create_resolution_tab(base, label):
+                with gr.Tab(label):
                     data = build_resolution_set(base)
                     gr.HTML(f"<div class='ar-category-label'>🔲 {_t('square')}</div>")
                     with gr.Row(elem_classes="ar-button-row"):
@@ -503,8 +503,11 @@ class AdvancedResolutionScript(scripts.Script):
                             gr.HTML("<div class='adv-ar-dynamic-base-tabs'></div>")
                             with gr.Row():
                                 custom_w = gr.Number(label=_t("custom_width"), value=1024, precision=0)
+                                custom_w.do_not_save_to_config = True
                                 custom_h = gr.Number(label=_t("custom_height"), value=1024, precision=0)
+                                custom_h.do_not_save_to_config = True
                                 calc_ratio = gr.Textbox(label=_t("auto_ratio"), value="1:1", interactive=False)
+                                calc_ratio.do_not_save_to_config = True
                             
                             with gr.Row():
                                 save_name = gr.Textbox(label=_t("preset_name"), placeholder=_t("preset_name_placeholder"))
@@ -527,9 +530,17 @@ class AdvancedResolutionScript(scripts.Script):
 
             def save_preset_action(w, h, name):
                 presets = load_custom_presets()
-                w, h = int(w), int(h)
+                try:
+                    w, h = int(w), int(h)
+                except (TypeError, ValueError):
+                    choices = list(presets.keys())
+                    return gr.update(choices=choices, value=choices[0] if choices else None)
+                if w <= 0 or h <= 0:
+                    choices = list(presets.keys())
+                    return gr.update(choices=choices, value=choices[0] if choices else None)
                 ratio = calculate_ratio(w, h)
-                preset_name = name.strip() if name.strip() else f"{ratio} ({w}x{h})"
+                clean_name = (name or "").strip()
+                preset_name = clean_name if clean_name else f"{ratio} ({w}x{h})"
                 presets[preset_name] = [w, h]
                 save_custom_presets(presets)
                 return gr.update(choices=list(presets.keys()), value=preset_name)

@@ -177,8 +177,9 @@
     }
 
     function setLabelByKnownText(root, zhText, enText, targetText) {
-        root.querySelectorAll("label, span, button, [role='tab']").forEach(function (node) {
-            if (textIs(node, [zhText, enText])) {
+        root.querySelectorAll("span, button, [role='tab'], label").forEach(function (node) {
+            // 仅替换无子元素的纯文本叶子节点，防止误删 <label> 内部的 <input> 组件
+            if (node.children.length === 0 && textIs(node, [zhText, enText])) {
                 node.textContent = targetText;
             }
         });
@@ -191,11 +192,25 @@
         if (placeholder && input) input.setAttribute("placeholder", placeholder);
     }
 
+    function syncAllManagersBases(bases, locale) {
+        const serialized = JSON.stringify(bases || []);
+        const app = window.gradioApp ? window.gradioApp() : document;
+        app.querySelectorAll(".adv-ar-base-manager").forEach(function (m) {
+            m.dataset.bases = serialized;
+            renderDynamicBaseTabs(m, bases || []);
+        });
+        refreshPluginLanguage(locale || "zh");
+    }
+
     function refreshPluginLanguage(language) {
         const lang = LOCALE[language] ? language : "zh";
         const t = LOCALE[lang];
         const app = window.gradioApp ? window.gradioApp() : document;
         const managers = app.querySelectorAll(".adv-ar-base-manager");
+        const noteKeys = [
+            "noteWidescreen", "noteCinematic", "noteUltrawide", "notePanorama",
+            "noteVerticalWidescreen", "noteVertical", "noteNarrow", "noteStrip",
+        ];
 
         managers.forEach(function (manager) {
             const wrapper = manager.closest(".adv-res-wrapper") || app;
@@ -216,7 +231,8 @@
             if (input) input.setAttribute("placeholder", t.baseQuickPlaceholder);
             if (add) add.textContent = t.baseQuickAdd;
 
-            const accordionLabel = wrapper.querySelector(".label-wrap span, .label-wrap");
+            // 精准选中标题文字 span，避免覆盖右侧折叠箭头图标
+            const accordionLabel = wrapper.querySelector(".label-wrap > span:first-child") || wrapper.querySelector(".label-wrap span");
             if (accordionLabel && /Preset Resolutions|预设分辨率/.test(accordionLabel.textContent || "")) {
                 accordionLabel.textContent = t.accordion;
             }
@@ -228,23 +244,21 @@
                 if (/Portrait|竖向/.test(text)) node.textContent = t.portrait;
             });
 
+            // 翻译内置 1024/1280/1536 标签页内的按钮后缀注释
+            wrapper.querySelectorAll(".ar-button-row button").forEach(function (btn) {
+                let label = btn.textContent || "";
+                noteKeys.forEach(function (key) {
+                    const zhNote = " " + LOCALE.zh[key] + " (";
+                    const enNote = " " + LOCALE.en[key] + " (";
+                    const targetNote = " " + t[key] + " (";
+                    if (label.includes(zhNote)) label = label.replace(zhNote, targetNote);
+                    else if (label.includes(enNote)) label = label.replace(enNote, targetNote);
+                });
+                if (btn.textContent !== label) btn.textContent = label;
+            });
+
             wrapper.querySelectorAll("button, [role='tab']").forEach(function (tab) {
-                const base = extractCustomBase(tab);
-                if (base) {
-                    const deletable = /\s*[x×]\s*$/i.test(tabText(tab)) || tab.querySelector(".adv-ar-base-delete-x");
-                    if (deletable) {
-                        tab.textContent = "";
-                        const labelNode = document.createElement("span");
-                        labelNode.textContent = base + " " + t.tabBaseCustom;
-                        const deleteNode = document.createElement("span");
-                        deleteNode.className = "adv-ar-base-delete-x";
-                        deleteNode.setAttribute("aria-label", template(t.baseQuickDeleteConfirm, base));
-                        deleteNode.textContent = "×";
-                        deleteNode.addEventListener("click", makeDeleteHandler(manager, base), true);
-                        tab.append(labelNode, deleteNode);
-                    }
-                    return;
-                }
+                if (tab.children.length > 0) return;
                 if (textIs(tab, [LOCALE.zh.tab1024, LOCALE.en.tab1024])) tab.textContent = t.tab1024;
                 if (textIs(tab, [LOCALE.zh.tab1280, LOCALE.en.tab1280])) tab.textContent = t.tab1280;
                 if (textIs(tab, [LOCALE.zh.tab1536, LOCALE.en.tab1536])) tab.textContent = t.tab1536;
@@ -257,10 +271,10 @@
             setLabelByKnownText(wrapper, LOCALE.zh.introLanguage, LOCALE.en.introLanguage, t.introLanguage);
 
             const inputs = wrapper.querySelectorAll("input, textarea");
-            inputs.forEach(function (input) {
-                const placeholder = input.getAttribute("placeholder") || "";
+            inputs.forEach(function (inp) {
+                const placeholder = inp.getAttribute("placeholder") || "";
                 if (placeholder === LOCALE.zh.presetPlaceholder || placeholder === LOCALE.en.presetPlaceholder) {
-                    setInputLabel(input, LOCALE.zh.presetName, LOCALE.en.presetName, t.presetName, t.presetPlaceholder);
+                    setInputLabel(inp, LOCALE.zh.presetName, LOCALE.en.presetName, t.presetName, t.presetPlaceholder);
                 }
             });
 
@@ -375,9 +389,8 @@
                 const result = await postJson(manager.dataset.addUrl, { base });
                 status(manager, result.message || template(manager.dataset.addedMessage, base), !result.ok);
                 if (result.ok) {
-                    manager.dataset.bases = JSON.stringify(result.bases || []);
-                    renderDynamicBaseTabs(manager, result.bases || []);
-                    refreshPluginLanguage(manager.dataset.advArLocale || "zh");
+                    input.value = "";
+                    syncAllManagersBases(result.bases || [], manager.dataset.advArLocale);
                 }
             } catch (error) {
                 status(manager, manager.dataset.failedMessage || error.message, true);
@@ -395,15 +408,6 @@
         });
     }
 
-    function tabText(tab) {
-        return (tab.textContent || "").replace(/\s+/g, " ").trim();
-    }
-
-    function extractCustomBase(tab) {
-        const match = tabText(tab).match(/^(\d+)\s+(?:基准|Base)\s*[x×]$/i);
-        return match ? Number.parseInt(match[1], 10) : null;
-    }
-
     function makeDeleteHandler(manager, base) {
         return async function (event) {
             event.preventDefault();
@@ -416,40 +420,12 @@
                 const result = await postJson(manager.dataset.deleteUrl, { base });
                 status(manager, result.message, !result.ok);
                 if (result.ok) {
-                    manager.dataset.bases = JSON.stringify(result.bases || []);
-                    renderDynamicBaseTabs(manager, result.bases || []);
-                    refreshPluginLanguage(manager.dataset.advArLocale || "zh");
+                    syncAllManagersBases(result.bases || [], manager.dataset.advArLocale);
                 }
             } catch (error) {
                 status(manager, manager.dataset.failedMessage || error.message, true);
             }
         };
-    }
-
-    function setupDeletableTabs() {
-        const manager = document.querySelector(".adv-ar-base-manager");
-        if (!manager) return;
-        if (document.querySelector(".adv-ar-dynamic-base-tabs")) return;
-
-        document.querySelectorAll("button, [role='tab']").forEach(function (tab) {
-            const base = extractCustomBase(tab);
-            if (!base || tab.dataset.advArDeleteReady === "1") return;
-
-            tab.dataset.advArDeleteReady = "1";
-            tab.classList.add("adv-ar-base-tab-delete");
-            tab.title = template(manager.dataset.deleteConfirm, base);
-
-            const label = tabText(tab).replace(/\s*[x×]\s*$/i, "");
-            tab.textContent = "";
-            const labelNode = document.createElement("span");
-            labelNode.textContent = label;
-            const deleteNode = document.createElement("span");
-            deleteNode.className = "adv-ar-base-delete-x";
-            deleteNode.setAttribute("aria-label", template(manager.dataset.deleteConfirm, base));
-            deleteNode.textContent = "×";
-            deleteNode.addEventListener("click", makeDeleteHandler(manager, base), true);
-            tab.append(labelNode, deleteNode);
-        });
     }
 
     function setupLanguageRefresh() {
@@ -465,7 +441,6 @@
             setupBaseManager(manager);
             renderDynamicBaseTabs(manager, parseBases(manager.dataset.bases));
         });
-        setupDeletableTabs();
         setupLanguageRefresh();
     }
 
